@@ -1,0 +1,22 @@
+[2025-11-14 11:13:55,118] INFO news_publish — [00ae7412-1643-4ae2-a96c-95a7281ea19d] Task started for news_post=94
+[2025-11-14 11:13:55,316] INFO news_publish — [00ae7412-1643-4ae2-a96c-95a7281ea19d] Publishing to newsibleasia (Science & Research)
+[2025-11-14 11:14:11,784] INFO news_publish — [00ae7412-1643-4ae2-a96c-95a7281ea19d] Publishing to gccnews (sub cat 1)
+[2025-11-14 11:14:24,064] INFO news_publish — [00ae7412-1643-4ae2-a96c-95a7281ea19d] Completed publishing
+[2025-11-14 11:18:47,042] INFO news_publish — [a4dc4187-8ee9-4a00-bcbb-fa9109bb90ac] Task started for news_post=95
+[2025-11-14 11:18:47,235] INFO news_publish — [a4dc4187-8ee9-4a00-bcbb-fa9109bb90ac] Publishing to newsibleasia (Science & Research)
+[2025-11-14 11:19:02,765] INFO news_publish — [a4dc4187-8ee9-4a00-bcbb-fa9109bb90ac] Publishing to gccnews (sub cat 1)
+[2025-11-14 11:19:16,259] INFO news_publish — [a4dc4187-8ee9-4a00-bcbb-fa9109bb90ac] Completed publishing
+[2025-11-14 11:21:01,078] INFO news_publish — [cff4f986-315f-42d6-9513-75757bfe6d52] Task started for news_post=96
+[2025-11-14 11:21:01,270] INFO news_publish — [cff4f986-315f-42d6-9513-75757bfe6d52] Publishing to newsibleasia (Science & Research)
+[2025-11-14 11:21:15,435] INFO news_publish — [cff4f986-315f-42d6-9513-75757bfe6d52] Publishing to gccnews (sub cat 1)
+[2025-11-14 11:21:31,730] INFO news_publish — [cff4f986-315f-42d6-9513-75757bfe6d52] Completed publishing
+[2025-11-14 12:05:36,389] INFO news_publish — [9f3099be-33b1-4b1f-8000-6fec95a8e625] Task started for news_post=97
+[2025-11-14 12:05:36,435] INFO news_publish — [9f3099be-33b1-4b1f-8000-6fec95a8e625] Publishing to newsibleasia (Science & Research)
+[2025-11-14 12:05:54,694] INFO news_publish — [9f3099be-33b1-4b1f-8000-6fec95a8e625] Publishing to gccnews (sub cat 1)
+[2025-11-14 12:06:12,475] INFO news_publish — [9f3099be-33b1-4b1f-8000-6fec95a8e625] Completed publishing
+[2025-11-15 11:24:51,949] INFO news_publish — [019b5ca8-cb05-4cff-8cdc-3a50287b4576] Task started for news_post=102
+[2025-11-15 11:24:52,054] INFO news_publish — [019b5ca8-cb05-4cff-8cdc-3a50287b4576] Publishing to newsibleasia (Science & Research)
+[2025-11-15 11:25:07,946] INFO news_publish — [019b5ca8-cb05-4cff-8cdc-3a50287b4576] Completed publishing
+[2025-11-15 11:25:32,829] INFO news_publish — [70d89af8-43f9-425f-b8b8-587c297cf2b8] Task started for news_post=102
+[2025-11-15 11:25:33,374] INFO news_publish — [70d89af8-43f9-425f-b8b8-587c297cf2b8] Publishing to newsibleasia (Science & Research)
+[2025-11-15 11:25:57,745] INFO news_publish — [70d89af8-43f9-425f-b8b8-587c297cf2b8] Completed publishing

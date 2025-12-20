@@ -1,0 +1,9 @@
+__pycache__/
+db.sqlite3
+**/migrations/*
+env/
+.env
+env2/
+logs/
+media/
+gpt_variation.log
