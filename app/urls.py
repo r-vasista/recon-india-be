@@ -41,7 +41,7 @@ urlpatterns = [
     path('sub-categories/by/parent/category/', PortalCategoriesByParentAPIView.as_view()),
     
     # News type (news from)
-    path('portal/<int:portal_id>/newstype/', PortalNewsTypeListAPIView.as_view(), name='portal-newstype-list'),
+    path('portal/newstype/<int:portal_id>/', PortalNewsTypeListAPIView.as_view(), name='portal-newstype-list'),
     
     # Groups
     path('group/', GroupCreateListAPIView.as_view()),
