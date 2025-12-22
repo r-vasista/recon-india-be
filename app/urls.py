@@ -11,7 +11,7 @@ from .views import (
     CategoryStatsAPIView, UserPortalDistributionStatsAPIView, NewsDistributionFetchAPIView, BackgroundNewsPostPublishAPIView,
     PublishStatusAPIView, NewsPublishTaskListAPIView, UniqueParentCategoryAPIView, PortalCategoriesByParentAPIView,
     PortalCategoryMatchWithMasterCategoryAPIView, CrossPortalMappingListCreateAPIView, CrossPortalMappingDeleteAPIView,
-    NewsPortalImageUploadAPIView
+    NewsPortalImageUploadAPIView, PortalNewsTypeListAPIView
 )
 
 urlpatterns = [
@@ -39,6 +39,9 @@ urlpatterns = [
     path('master/categories/mapped/<int:master_category_id>/', MasterCategoryMappingsListView.as_view()),
     path('parent/categories/list/<int:portal_id>/', UniqueParentCategoryAPIView.as_view()),
     path('sub-categories/by/parent/category/', PortalCategoriesByParentAPIView.as_view()),
+    
+    # News type (news from)
+    path('portal/<int:portal_id>/newstype/', PortalNewsTypeListAPIView.as_view(), name='portal-newstype-list'),
     
     # Groups
     path('group/', GroupCreateListAPIView.as_view()),

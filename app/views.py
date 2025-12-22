@@ -1033,6 +1033,11 @@ class MasterNewsPostPublishAPIView(APIView):
             if excluded_ids is None:
                 excluded_ids = news_post.exclude_portal_categories or []
 
+            # E. Newstype slug (check request first, then model)
+            newstype_slug = request.data.get("newstype_slug", "").strip()
+            if not newstype_slug:
+                newstype_slug = news_post.newstype_slug or ""
+
             # --- DATA CLEANING ---
             def clean_id_list(val):
                 if isinstance(val, str):
@@ -1092,7 +1097,7 @@ class MasterNewsPostPublishAPIView(APIView):
                         if t_cat.id not in targets:
                             targets[t_cat.id] = {
                                 "category": t_cat,
-                                "use_default_content": False # Targets still get AI rewrite
+                                "use_default_content": False
                             }
 
             # --- SOURCE 3: MANUAL EXTRA SELECTIONS ---
@@ -1163,6 +1168,11 @@ class MasterNewsPostPublishAPIView(APIView):
                     dist.save()
 
                 start_time = time.perf_counter()
+                
+                # Initialize variables outside try block
+                files = None
+                rewritten_title = news_post.title
+                rewritten_slug = news_post.slug
 
                 try:
                     # ========================================================
@@ -1181,9 +1191,10 @@ class MasterNewsPostPublishAPIView(APIView):
                     elif news_post.post_image:
                         # 2. Fallback to Master Image
                         final_image_path = news_post.post_image.path
-                    # ========================================================
 
-                    # --- AI CONTENT GENERATION ---
+                    # ========================================================
+                    # ### AI CONTENT GENERATION
+                    # ========================================================
                     if mapping.use_default_content:
                         rewritten_title = news_post.title
                         rewritten_short = news_post.short_description
@@ -1210,7 +1221,9 @@ class MasterNewsPostPublishAPIView(APIView):
                         if not ai_result: raise ValueError("AI generation failed")
                         rewritten_title, rewritten_short, rewritten_content, rewritten_meta, rewritten_slug = ai_result
 
-                    # --- USER MAPPING ---
+                    # ========================================================
+                    # ### USER MAPPING
+                    # ========================================================
                     portal_user = PortalUserMapping.objects.filter(
                         user=user, portal=portal, status="MATCHED"
                     ).first()
@@ -1218,7 +1231,9 @@ class MasterNewsPostPublishAPIView(APIView):
                     if not portal_user:
                         raise ValueError(f"User {user.username} not mapped to portal {portal.name}")
 
-                    # --- PAYLOAD ---
+                    # ========================================================
+                    # ### PAYLOAD CONSTRUCTION
+                    # ========================================================
                     payload = {
                         "post_cat": portal_category.external_id,
                         "post_title": rewritten_title,
@@ -1239,17 +1254,26 @@ class MasterNewsPostPublishAPIView(APIView):
                         "BreakingNews": int(bool(news_post.BreakingNews)),
                         "post_status": news_post.counter or 0,
                     }
+                    
+                    # Add newstype_slug if provided (Portal will handle get_or_create)
+                    if newstype_slug:
+                        payload["newstype_slug"] = newstype_slug
+                        # Store for reference
+                        dist.newstype_slug_sent = newstype_slug
 
-                    # --- FILE PREPARATION ---
+                    # ========================================================
+                    # ### FILE PREPARATION
+                    # ========================================================
                     files = None
                     if final_image_path:
                         try:
                             files = {"post_image": open(final_image_path, "rb")}
                         except FileNotFoundError:
-                            # Log warning but proceed (or fail depending on requirements)
                             pass
 
-                    # --- SEND ---
+                    # ========================================================
+                    # ### SEND REQUEST TO PORTAL
+                    # ========================================================
                     api_url = f"{portal.base_url}/api/create-news/"
                     response = requests.post(api_url, data=payload, files=files, timeout=90)
                     
@@ -1261,22 +1285,40 @@ class MasterNewsPostPublishAPIView(APIView):
                         resp_json = response.json()
                         if isinstance(resp_json, dict) and resp_json.get("status"):
                             portal_news_id = resp_json.get("data", {}).get("id")
-                    except: pass
+                    except: 
+                        pass
 
                 except Exception as e:
                     success = False
                     response_msg = str(e)
+                    # Ensure rewritten_title and rewritten_slug have values even on error
+                    if 'rewritten_title' not in locals():
+                        rewritten_title = news_post.title
+                    if 'rewritten_slug' not in locals():
+                        rewritten_slug = news_post.slug
 
-                # --- SAVE RESULT ---
+                finally:
+                    # Close file if opened
+                    if files and "post_image" in files:
+                        try:
+                            files["post_image"].close()
+                        except:
+                            pass
+
+                # ========================================================
+                # ### SAVE RESULT
+                # ========================================================
                 elapsed = round(time.perf_counter() - start_time, 2)
                 dist.status = "SUCCESS" if success else "FAILED"
                 dist.response_message = response_msg
                 dist.time_taken = elapsed
                 dist.completed_at = timezone.now()
+                
                 if success:
                     dist.ai_title = rewritten_title
                     dist.ai_slug = rewritten_slug
                     dist.portal_news_id = str(portal_news_id) if portal_news_id else None
+                
                 dist.save()
 
                 results.append({
@@ -1289,8 +1331,8 @@ class MasterNewsPostPublishAPIView(APIView):
             return Response(success_response(results, "News published successfully."))
 
         except Exception as e:
-            return Response(error_response(str(e)), status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
-        
+            return Response(error_response(str(e)), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+       
         
 class NewsPostCreateAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -4364,3 +4406,45 @@ class NewsPortalImageUploadAPIView(APIView):
 
         except Exception as e:
             return Response(error_response(str(e)), status=500)
+
+
+class PortalNewsTypeListAPIView(APIView):
+    """
+    Get newstype list from a specific portal (for UI dropdowns in Recon).
+    This fetches live data from the portal, not from Recon's database.
+    
+    GET /api/portal/{portal_id}/newstype/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, portal_id):
+        try:
+            portal = get_object_or_404(Portal, id=portal_id, is_active=True)
+            
+            # Fetch directly from portal's API
+            api_url = f"{portal.base_url}/api/newstype/"
+            
+            try:
+                response = requests.get(api_url, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                
+                if data.get('status'):
+                    return Response({
+                        'status': True,
+                        'message': 'Success',
+                        'data': data.get('data', [])
+                    }, status=status.HTTP_200_OK)
+                else:
+                    raise Exception(data.get('message', 'Failed to fetch newstype'))
+                    
+            except requests.RequestException as e:
+                raise Exception(f"Portal API error: {str(e)}")
+            
+        except Exception as e:
+            return Response({
+                'status': False,
+                'message': str(e),
+                'data': []
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            

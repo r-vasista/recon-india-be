@@ -113,7 +113,7 @@ class MasterNewsPost(BaseModel):
     content = models.TextField()
     post_image = models.ImageField(upload_to="posts/%Y/%m/%d/")
     
-    # Optional overrides (subset of fields in each portal's NewsPost model)
+    # Optional overrides
     is_active = models.BooleanField(null=True, blank=True)
     latest_news = models.BooleanField(null=True, blank=True)
     upcoming_event = models.BooleanField(null=True, blank=True)
@@ -126,7 +126,11 @@ class MasterNewsPost(BaseModel):
     Event_end_date = models.DateField(null=True, blank=True)
     schedule_date = models.DateTimeField(null=True, blank=True)
     post_tag = models.TextField(null=True, blank=True)
-    counter=models.PositiveIntegerField(null=True, blank=True)
+    counter = models.PositiveIntegerField(null=True, blank=True)
+    
+    # For recon india
+    newstype_slug = models.SlugField(max_length=100, null=True, blank=True, 
+                                     help_text="Slug for newsfrom field (e.g., 'punjab', 'warraich-towns')")
     
     # SEO fields
     meta_title = models.CharField(max_length=255, null=True, blank=True)
@@ -153,7 +157,6 @@ class MasterNewsPost(BaseModel):
         return self.title
     
     def save(self, *args, **kwargs):
-        # Auto-generate slug if not provided
         if not self.slug:
             base_slug = slugify(self.title)
             slug = base_slug
@@ -190,10 +193,11 @@ class NewsDistribution(BaseModel):
     ai_short_description = models.CharField(max_length=300, null=True, blank=True)
     ai_content = models.TextField(null=True, blank=True)
     ai_meta_title = models.CharField(max_length=255, null=True, blank=True)
-    ai_slug = models.SlugField(max_length=255, null=True, blank=True) 
+    ai_slug = models.SlugField(max_length=255, null=True, blank=True)
     edited_image = models.ImageField(upload_to="distribution_edits/%Y/%m/%d/", null=True, blank=True, help_text="Edited image for this portal-specific distribution.")       
-
-    # Extendable JSON for future portal-specific fields
+    # Store the newstype slug that was sent (for reference only)
+    newstype_slug_sent = models.SlugField(max_length=100, null=True, blank=True,
+                                          help_text="The newstype slug sent to portal")
 
     status = models.CharField(
         max_length=20,
