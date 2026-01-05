@@ -33,7 +33,7 @@ from app.serializers import (
 )
 from app.utils import success_response, error_response, get_portals_from_assignment
 from app.pagination import PaginationMixin
-
+from reporter.serializers import ReporterProfileSerializer
 
 User = get_user_model()
 
@@ -41,44 +41,93 @@ User = get_user_model()
 class UserRegistrationAPIView(APIView):
     """
     POST /api/register/
+    
+    Example Payload (Reporter):
     {
-        "username": "vasista",
-        "email": "vasista@example.com",
-        "password": "strongpassword123"
+        "username": "reporter_01",
+        "email": "reporter@news.com",
+        "password": "securepassword",
+        "role": "reporter",
+        "phone_number": "+919876543210",  <-- Mandatory for reporter
+        "bio": "Senior crime reporter",   <-- Optional
+        "city": "Mumbai"                  <-- Optional
     }
     """
 
+    @transaction.atomic
     def post(self, request):
-        serializer = UserRegistrationSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(error_response(serializer.errors), status=status.HTTP_400_BAD_REQUEST)
+        # 1. Initialize Serializers
+        user_serializer = UserRegistrationSerializer(data=request.data)
+        
+        # Check role
+        requested_role = request.data.get("role", "user").lower()
+        profile_serializer = None
 
-        # Create user
-        user = serializer.save()
+        # 2. If Reporter, initialize Profile Serializer
+        if requested_role == "reporter":
+            profile_serializer = ReporterProfileSerializer(data=request.data)
+        
+        # 3. Validate ALL data before saving anything
+        # We collect errors from both to show the user everything that is wrong at once
+        errors = {}
+        
+        if not user_serializer.is_valid():
+            errors.update(user_serializer.errors)
+            
+        if requested_role == "reporter":
+            if not profile_serializer.is_valid():
+                # Merge profile errors into the main error dict
+                errors.update(profile_serializer.errors)
 
-        # Assign default role = USER
+        if errors:
+            return Response(error_response(errors), status=status.HTTP_400_BAD_REQUEST)
+
+        # ---------------------------------------------------------
+        # Data is valid, proceed to Save
+        # ---------------------------------------------------------
+        
         try:
-            default_role, _ = Role.objects.get_or_create(name="user")
-            UserRole.objects.create(user=user, role=default_role)
-        except Exception as e:
+            # 4. Save User
+            user = user_serializer.save()
+
+            # 5. Save Profile & Role
+            if requested_role == "reporter":
+                # Create Reporter Profile linked to the new user
+                # We pass the user instance specifically here
+                profile_serializer.save(user=user)
+                
+                role_name = "reporter"
+            else:
+                role_name = "user"
+
+            # 6. Assign Role
+            role_obj, _ = Role.objects.get_or_create(name=role_name)
+            UserRole.objects.create(user=user, role=role_obj)
+
+            # 7. Map Portals (Your existing logic)
+            mappings = map_user_to_portals(user.id, user.username)
+
+            response_data = {
+                "user": user_serializer.data,
+                "role": role_name,
+                "portal_mappings": mappings
+            }
+            
+            # Add profile data to response if it exists
+            if profile_serializer:
+                response_data["profile"] = profile_serializer.data
+
             return Response(
-                error_response(f"User created but role assignment failed: {str(e)}"),
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                success_response(response_data, "Registration successful"),
+                status=status.HTTP_201_CREATED
             )
 
-        # Map across portals
-        mappings = map_user_to_portals(user.id, user.username)
-
-        response_data = {
-            "user": serializer.data,
-            "role": "user",
-            "portal_mappings": mappings
-        }
-
-        return Response(
-            success_response(response_data, "User registered with USER role and portal mappings created"),
-            status=status.HTTP_201_CREATED
-        )
+        except Exception as e:
+            # Transaction atomic will rollback user creation if this fails
+            return Response(
+                error_response(f"System Error: {str(e)}"),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class LoginView(TokenObtainPairView):
